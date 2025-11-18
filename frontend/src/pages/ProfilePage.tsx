@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
-import { User, MapPin, Briefcase, Heart, Edit, Plus, X } from 'lucide-react';
-import { useAuthStore } from '../store/authStore';
+import { User, MapPin, Briefcase, Heart, Edit, X } from 'lucide-react';
 import api from '../services/api';
-import type { UserProfile, Activity } from '../types';
+import type { UserProfile } from '../types';
 
 export default function ProfilePage() {
-  const { user } = useAuthStore();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
