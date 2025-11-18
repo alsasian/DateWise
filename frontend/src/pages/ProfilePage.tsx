@@ -7,6 +7,19 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [formData, setFormData] = useState({
+    occupation: '',
+    interests: '',
+    values: '',
+    lifestyle: '',
+    relationship_goals: '',
+    deal_breakers: '',
+    personality: '',
+    age_preference_min: 18,
+    age_preference_max: 100,
+    location_preference: '',
+  });
 
   useEffect(() => {
     loadProfile();
@@ -16,11 +29,58 @@ export default function ProfilePage() {
     try {
       const data = await api.getProfile();
       setProfile(data);
+      // Initialize form data with current profile values
+      setFormData({
+        occupation: data.occupation || '',
+        interests: data.interests || '',
+        values: data.values || '',
+        lifestyle: data.lifestyle || '',
+        relationship_goals: data.relationship_goals || '',
+        deal_breakers: data.deal_breakers || '',
+        personality: data.personality || '',
+        age_preference_min: data.age_preference_min || 18,
+        age_preference_max: data.age_preference_max || 100,
+        location_preference: data.location_preference || '',
+      });
     } catch (error) {
       console.error('Failed to load profile:', error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSaveProfile = async () => {
+    setIsSaving(true);
+    try {
+      await api.updateProfile(formData);
+      await loadProfile();
+      setIsEditing(false);
+      alert('Profile updated successfully!');
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      alert('Failed to update profile. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    // Reset form data to current profile values
+    if (profile) {
+      setFormData({
+        occupation: profile.occupation || '',
+        interests: profile.interests || '',
+        values: profile.values || '',
+        lifestyle: profile.lifestyle || '',
+        relationship_goals: profile.relationship_goals || '',
+        deal_breakers: profile.deal_breakers || '',
+        personality: profile.personality || '',
+        age_preference_min: profile.age_preference_min || 18,
+        age_preference_max: profile.age_preference_max || 100,
+        location_preference: profile.location_preference || '',
+      });
+    }
+    setIsEditing(false);
   };
 
   const handleRemoveActivity = async (userActivityId: number) => {
@@ -47,13 +107,32 @@ export default function ProfilePage() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-4xl font-bold text-gray-900">Your Profile</h1>
-        <button
-          onClick={() => setIsEditing(!isEditing)}
-          className="btn btn-secondary flex items-center space-x-2"
-        >
-          <Edit className="w-5 h-5" />
-          <span>{isEditing ? 'Cancel' : 'Edit'}</span>
-        </button>
+        {isEditing ? (
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={handleCancelEdit}
+              className="btn btn-secondary flex items-center space-x-2"
+            >
+              <X className="w-5 h-5" />
+              <span>Cancel</span>
+            </button>
+            <button
+              onClick={handleSaveProfile}
+              disabled={isSaving}
+              className="btn btn-primary flex items-center space-x-2"
+            >
+              <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setIsEditing(true)}
+            className="btn btn-secondary flex items-center space-x-2"
+          >
+            <Edit className="w-5 h-5" />
+            <span>Edit Profile</span>
+          </button>
+        )}
       </div>
 
       {/* Basic Info */}
@@ -96,61 +175,163 @@ export default function ProfilePage() {
 
           <div>
             <h3 className="font-semibold text-gray-900 mb-2">Occupation</h3>
-            <p className="text-gray-700">{profile.occupation || 'Not specified'}</p>
+            {isEditing ? (
+              <input
+                type="text"
+                value={formData.occupation}
+                onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="e.g., Software Engineer, Teacher, etc."
+              />
+            ) : (
+              <p className="text-gray-700">{profile.occupation || 'Not specified'}</p>
+            )}
           </div>
 
           <div>
             <h3 className="font-semibold text-gray-900 mb-2">Interests</h3>
-            <p className="text-gray-700">{profile.interests || 'Not specified'}</p>
+            {isEditing ? (
+              <textarea
+                value={formData.interests}
+                onChange={(e) => setFormData({ ...formData, interests: e.target.value })}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="e.g., Hiking, photography, cooking, reading sci-fi..."
+              />
+            ) : (
+              <p className="text-gray-700">{profile.interests || 'Not specified'}</p>
+            )}
           </div>
 
           <div>
             <h3 className="font-semibold text-gray-900 mb-2">Values</h3>
-            <p className="text-gray-700">{profile.values || 'Not specified'}</p>
+            {isEditing ? (
+              <textarea
+                value={formData.values}
+                onChange={(e) => setFormData({ ...formData, values: e.target.value })}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="e.g., Honesty, family, adventure, personal growth..."
+              />
+            ) : (
+              <p className="text-gray-700">{profile.values || 'Not specified'}</p>
+            )}
           </div>
 
           <div>
             <h3 className="font-semibold text-gray-900 mb-2">Lifestyle</h3>
-            <p className="text-gray-700">{profile.lifestyle || 'Not specified'}</p>
+            {isEditing ? (
+              <textarea
+                value={formData.lifestyle}
+                onChange={(e) => setFormData({ ...formData, lifestyle: e.target.value })}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="e.g., Active and social, quiet evenings at home, traveling often..."
+              />
+            ) : (
+              <p className="text-gray-700">{profile.lifestyle || 'Not specified'}</p>
+            )}
           </div>
 
           <div>
             <h3 className="font-semibold text-gray-900 mb-2">Relationship Goals</h3>
-            <p className="text-gray-700">{profile.relationship_goals || 'Not specified'}</p>
+            {isEditing ? (
+              <textarea
+                value={formData.relationship_goals}
+                onChange={(e) => setFormData({ ...formData, relationship_goals: e.target.value })}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="e.g., Looking for long-term partnership, casual dating, marriage..."
+              />
+            ) : (
+              <p className="text-gray-700">{profile.relationship_goals || 'Not specified'}</p>
+            )}
           </div>
 
-          {profile.deal_breakers && (
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-2">Deal-Breakers</h3>
-              <p className="text-gray-700">{profile.deal_breakers}</p>
-            </div>
-          )}
+          <div>
+            <h3 className="font-semibold text-gray-900 mb-2">Deal-Breakers</h3>
+            {isEditing ? (
+              <textarea
+                value={formData.deal_breakers}
+                onChange={(e) => setFormData({ ...formData, deal_breakers: e.target.value })}
+                rows={2}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="e.g., Smoking, no pets, long distance..."
+              />
+            ) : (
+              <p className="text-gray-700">{profile.deal_breakers || 'Not specified'}</p>
+            )}
+          </div>
 
-          {profile.personality && (
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-2">Personality</h3>
-              <p className="text-gray-700">{profile.personality}</p>
-            </div>
-          )}
+          <div>
+            <h3 className="font-semibold text-gray-900 mb-2">Personality</h3>
+            {isEditing ? (
+              <textarea
+                value={formData.personality}
+                onChange={(e) => setFormData({ ...formData, personality: e.target.value })}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="e.g., Outgoing and spontaneous, thoughtful and introspective..."
+              />
+            ) : (
+              <p className="text-gray-700">{profile.personality || 'Not specified'}</p>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Preferences */}
       <div className="card">
         <h3 className="text-xl font-semibold text-gray-900 mb-4">Match Preferences</h3>
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div>
-            <p className="text-sm text-gray-600">Age Range</p>
-            <p className="text-gray-900">
-              {profile.age_preference_min} - {profile.age_preference_max} years old
-            </p>
+            <p className="text-sm text-gray-600 mb-2">Age Range</p>
+            {isEditing ? (
+              <div className="flex items-center space-x-4">
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500">Min Age</label>
+                  <input
+                    type="number"
+                    min="18"
+                    max="100"
+                    value={formData.age_preference_min}
+                    onChange={(e) => setFormData({ ...formData, age_preference_min: parseInt(e.target.value) || 18 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+                <span className="text-gray-500">-</span>
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500">Max Age</label>
+                  <input
+                    type="number"
+                    min="18"
+                    max="100"
+                    value={formData.age_preference_max}
+                    onChange={(e) => setFormData({ ...formData, age_preference_max: parseInt(e.target.value) || 100 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+            ) : (
+              <p className="text-gray-900">
+                {profile.age_preference_min} - {profile.age_preference_max} years old
+              </p>
+            )}
           </div>
-          {profile.location_preference && (
-            <div>
-              <p className="text-sm text-gray-600">Location Preference</p>
-              <p className="text-gray-900">{profile.location_preference}</p>
-            </div>
-          )}
+          <div>
+            <p className="text-sm text-gray-600 mb-2">Location Preference</p>
+            {isEditing ? (
+              <input
+                type="text"
+                value={formData.location_preference}
+                onChange={(e) => setFormData({ ...formData, location_preference: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="e.g., Within 10 miles, Same city, Willing to relocate..."
+              />
+            ) : (
+              <p className="text-gray-900">{profile.location_preference || 'Not specified'}</p>
+            )}
+          </div>
         </div>
       </div>
 
