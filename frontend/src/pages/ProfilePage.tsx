@@ -23,6 +23,7 @@ export default function ProfilePage() {
   const [selectedActivitiesToAdd, setSelectedActivitiesToAdd] = useState<Set<number>>(new Set());
   const [isAddingActivities, setIsAddingActivities] = useState(false);
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
+  const [activityLoadError, setActivityLoadError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     occupation: '',
     interests: '',
@@ -113,13 +114,17 @@ export default function ProfilePage() {
   const handleOpenActivityModal = async () => {
     setShowActivityModal(true);
     setIsLoadingActivities(true);
+    setActivityLoadError(null);
     try {
       const country = profile?.location === 'Singapore' ? 'singapore' : 'indonesia';
+      console.log('Fetching activities for country:', country);
       const data = await api.getActivitiesByCategory(country);
+      console.log('Activities fetched:', data);
+      console.log('Number of categories:', Object.keys(data).length);
       setAvailableActivities(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load activities:', error);
-      alert('Failed to load activities. Please try again.');
+      setActivityLoadError(error?.message || 'Failed to load activities. Please try again.');
     } finally {
       setIsLoadingActivities(false);
     }
@@ -162,6 +167,7 @@ export default function ProfilePage() {
   const handleCloseActivityModal = () => {
     setShowActivityModal(false);
     setSelectedActivitiesToAdd(new Set());
+    setActivityLoadError(null);
   };
 
   if (isLoading) {
@@ -500,6 +506,27 @@ export default function ProfilePage() {
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
                   <p className="text-gray-600">Loading activities...</p>
+                </div>
+              ) : activityLoadError ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <X className="w-8 h-8 text-red-600" />
+                  </div>
+                  <p className="text-red-600 mb-4">{activityLoadError}</p>
+                  <button
+                    onClick={handleOpenActivityModal}
+                    className="btn btn-primary"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              ) : Object.keys(availableActivities).length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Heart className="w-8 h-8 text-yellow-600" />
+                  </div>
+                  <p className="text-gray-600 mb-2">No activities available</p>
+                  <p className="text-sm text-gray-500">Please contact support if this persists.</p>
                 </div>
               ) : (
                 <>
