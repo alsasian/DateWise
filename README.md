@@ -1,6 +1,6 @@
 # DateWise 💚
 
-**Activity-First Dating App That Skips The Endless Messaging Phase**
+**Activity-first dating app that skips the endless messaging phase**
 
 ## 🌟 Key Differentiator
 
