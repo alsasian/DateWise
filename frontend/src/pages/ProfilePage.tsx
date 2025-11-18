@@ -22,6 +22,7 @@ export default function ProfilePage() {
   const [availableActivities, setAvailableActivities] = useState<Record<string, Activity[]>>({});
   const [selectedActivitiesToAdd, setSelectedActivitiesToAdd] = useState<Set<number>>(new Set());
   const [isAddingActivities, setIsAddingActivities] = useState(false);
+  const [isLoadingActivities, setIsLoadingActivities] = useState(false);
   const [formData, setFormData] = useState({
     occupation: '',
     interests: '',
@@ -111,6 +112,7 @@ export default function ProfilePage() {
 
   const handleOpenActivityModal = async () => {
     setShowActivityModal(true);
+    setIsLoadingActivities(true);
     try {
       const country = profile?.location === 'Singapore' ? 'singapore' : 'indonesia';
       const data = await api.getActivitiesByCategory(country);
@@ -118,6 +120,8 @@ export default function ProfilePage() {
     } catch (error) {
       console.error('Failed to load activities:', error);
       alert('Failed to load activities. Please try again.');
+    } finally {
+      setIsLoadingActivities(false);
     }
   };
 
@@ -492,60 +496,70 @@ export default function ProfilePage() {
             </div>
 
             <div className="p-6 space-y-6">
-              {Object.entries(availableActivities).map(([category, items]) => {
-                const categoryInfo = CATEGORY_INFO[category as keyof typeof CATEGORY_INFO];
-                // Filter out activities that the user already has
-                const existingActivityIds = new Set(profile?.activities?.map(ua => ua.activity.id) || []);
-                const availableItems = items.filter(activity => !existingActivityIds.has(activity.id));
-
-                if (availableItems.length === 0) return null;
-
-                return (
-                  <div key={category}>
-                    <div className="flex items-center space-x-2 mb-3">
-                      <span className="text-2xl">{categoryInfo.icon}</span>
-                      <h3 className="text-lg font-semibold text-gray-900">{categoryInfo.label}</h3>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {availableItems.map((activity) => (
-                        <button
-                          key={activity.id}
-                          type="button"
-                          onClick={() => toggleActivitySelection(activity.id)}
-                          className={clsx(
-                            'p-4 rounded-lg border-2 text-left transition-all',
-                            selectedActivitiesToAdd.has(activity.id)
-                              ? 'border-primary-500 bg-primary-50'
-                              : 'border-gray-200 hover:border-gray-300'
-                          )}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <span className="text-2xl mr-2">{activity.icon}</span>
-                              <span className="font-medium text-gray-900">{activity.name}</span>
-                              {activity.description && (
-                                <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
-                              )}
-                            </div>
-                            {selectedActivitiesToAdd.has(activity.id) && (
-                              <CheckCircle className="w-6 h-6 text-primary-600 flex-shrink-0" />
-                            )}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-
-              {Object.values(availableActivities).every(items => {
-                const existingActivityIds = new Set(profile?.activities?.map(ua => ua.activity.id) || []);
-                return items.every(activity => existingActivityIds.has(activity.id));
-              }) && (
+              {isLoadingActivities ? (
                 <div className="text-center py-12">
-                  <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-600">You've already added all available activities!</p>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading activities...</p>
                 </div>
+              ) : (
+                <>
+                  {Object.entries(availableActivities).map(([category, items]) => {
+                    const categoryInfo = CATEGORY_INFO[category as keyof typeof CATEGORY_INFO];
+                    // Filter out activities that the user already has
+                    const existingActivityIds = new Set(profile?.activities?.map(ua => ua.activity.id) || []);
+                    const availableItems = items.filter(activity => !existingActivityIds.has(activity.id));
+
+                    if (availableItems.length === 0) return null;
+
+                    return (
+                      <div key={category}>
+                        <div className="flex items-center space-x-2 mb-3">
+                          <span className="text-2xl">{categoryInfo.icon}</span>
+                          <h3 className="text-lg font-semibold text-gray-900">{categoryInfo.label}</h3>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {availableItems.map((activity) => (
+                            <button
+                              key={activity.id}
+                              type="button"
+                              onClick={() => toggleActivitySelection(activity.id)}
+                              className={clsx(
+                                'p-4 rounded-lg border-2 text-left transition-all',
+                                selectedActivitiesToAdd.has(activity.id)
+                                  ? 'border-primary-500 bg-primary-50'
+                                  : 'border-gray-200 hover:border-gray-300'
+                              )}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <span className="text-2xl mr-2">{activity.icon}</span>
+                                  <span className="font-medium text-gray-900">{activity.name}</span>
+                                  {activity.description && (
+                                    <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
+                                  )}
+                                </div>
+                                {selectedActivitiesToAdd.has(activity.id) && (
+                                  <CheckCircle className="w-6 h-6 text-primary-600 flex-shrink-0" />
+                                )}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {Object.keys(availableActivities).length > 0 &&
+                   Object.values(availableActivities).every(items => {
+                    const existingActivityIds = new Set(profile?.activities?.map(ua => ua.activity.id) || []);
+                    return items.every(activity => existingActivityIds.has(activity.id));
+                  }) && (
+                    <div className="text-center py-12">
+                      <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-600">You've already added all available activities!</p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
