@@ -1,13 +1,27 @@
 import { useEffect, useState } from 'react';
-import { User, MapPin, Briefcase, Heart, Edit, X } from 'lucide-react';
+import { User, MapPin, Briefcase, Heart, Edit, X, Plus, CheckCircle } from 'lucide-react';
 import api from '../services/api';
-import type { UserProfile } from '../types';
+import type { UserProfile, Activity } from '../types';
+import clsx from 'clsx';
+
+const CATEGORY_INFO = {
+  coffee_casual: { label: 'Coffee & Casual', icon: '☕', color: 'bg-amber-100 text-amber-800' },
+  outdoor_active: { label: 'Outdoor & Active', icon: '🌳', color: 'bg-green-100 text-green-800' },
+  food_dining: { label: 'Food & Dining', icon: '🍽️', color: 'bg-red-100 text-red-800' },
+  arts_culture: { label: 'Arts & Culture', icon: '🎨', color: 'bg-purple-100 text-purple-800' },
+  fun_games: { label: 'Fun & Games', icon: '🎯', color: 'bg-blue-100 text-blue-800' },
+  entertainment: { label: 'Entertainment', icon: '🎭', color: 'bg-pink-100 text-pink-800' },
+};
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showActivityModal, setShowActivityModal] = useState(false);
+  const [availableActivities, setAvailableActivities] = useState<Record<string, Activity[]>>({});
+  const [selectedActivitiesToAdd, setSelectedActivitiesToAdd] = useState<Set<number>>(new Set());
+  const [isAddingActivities, setIsAddingActivities] = useState(false);
   const [formData, setFormData] = useState({
     occupation: '',
     interests: '',
@@ -93,6 +107,57 @@ export default function ProfilePage() {
       console.error('Failed to remove activity:', error);
       alert('Failed to remove activity. Please try again.');
     }
+  };
+
+  const handleOpenActivityModal = async () => {
+    setShowActivityModal(true);
+    try {
+      const country = profile?.location === 'Singapore' ? 'singapore' : 'indonesia';
+      const data = await api.getActivitiesByCategory(country);
+      setAvailableActivities(data);
+    } catch (error) {
+      console.error('Failed to load activities:', error);
+      alert('Failed to load activities. Please try again.');
+    }
+  };
+
+  const toggleActivitySelection = (activityId: number) => {
+    setSelectedActivitiesToAdd((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(activityId)) {
+        newSet.delete(activityId);
+      } else {
+        newSet.add(activityId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleAddActivities = async () => {
+    if (selectedActivitiesToAdd.size === 0) {
+      alert('Please select at least one activity');
+      return;
+    }
+
+    setIsAddingActivities(true);
+    try {
+      for (const activityId of selectedActivitiesToAdd) {
+        await api.addActivity(activityId, {});
+      }
+      await loadProfile();
+      setShowActivityModal(false);
+      setSelectedActivitiesToAdd(new Set());
+    } catch (error) {
+      console.error('Failed to add activities:', error);
+      alert('Failed to add activities. Please try again.');
+    } finally {
+      setIsAddingActivities(false);
+    }
+  };
+
+  const handleCloseActivityModal = () => {
+    setShowActivityModal(false);
+    setSelectedActivitiesToAdd(new Set());
   };
 
   if (isLoading) {
@@ -342,6 +407,13 @@ export default function ProfilePage() {
             <Heart className="w-6 h-6 text-primary-600" />
             <span>Your Activities ({profile.activities?.length || 0})</span>
           </h3>
+          <button
+            onClick={handleOpenActivityModal}
+            className="btn btn-primary flex items-center space-x-2"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Add Activities</span>
+          </button>
         </div>
 
         {!profile.activities || profile.activities.length === 0 ? (
@@ -404,6 +476,102 @@ export default function ProfilePage() {
           <li>✅ Update your preferences as they change</li>
         </ul>
       </div>
+
+      {/* Activity Selection Modal */}
+      {showActivityModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900">Add Activities</h2>
+              <button
+                onClick={handleCloseActivityModal}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {Object.entries(availableActivities).map(([category, items]) => {
+                const categoryInfo = CATEGORY_INFO[category as keyof typeof CATEGORY_INFO];
+                // Filter out activities that the user already has
+                const existingActivityIds = new Set(profile?.activities?.map(ua => ua.activity.id) || []);
+                const availableItems = items.filter(activity => !existingActivityIds.has(activity.id));
+
+                if (availableItems.length === 0) return null;
+
+                return (
+                  <div key={category}>
+                    <div className="flex items-center space-x-2 mb-3">
+                      <span className="text-2xl">{categoryInfo.icon}</span>
+                      <h3 className="text-lg font-semibold text-gray-900">{categoryInfo.label}</h3>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {availableItems.map((activity) => (
+                        <button
+                          key={activity.id}
+                          type="button"
+                          onClick={() => toggleActivitySelection(activity.id)}
+                          className={clsx(
+                            'p-4 rounded-lg border-2 text-left transition-all',
+                            selectedActivitiesToAdd.has(activity.id)
+                              ? 'border-primary-500 bg-primary-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          )}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <span className="text-2xl mr-2">{activity.icon}</span>
+                              <span className="font-medium text-gray-900">{activity.name}</span>
+                              {activity.description && (
+                                <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
+                              )}
+                            </div>
+                            {selectedActivitiesToAdd.has(activity.id) && (
+                              <CheckCircle className="w-6 h-6 text-primary-600 flex-shrink-0" />
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {Object.values(availableActivities).every(items => {
+                const existingActivityIds = new Set(profile?.activities?.map(ua => ua.activity.id) || []);
+                return items.every(activity => existingActivityIds.has(activity.id));
+              }) && (
+                <div className="text-center py-12">
+                  <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-600">You've already added all available activities!</p>
+                </div>
+              )}
+            </div>
+
+            <div className="sticky bottom-0 bg-white border-t px-6 py-4 flex items-center justify-between">
+              <p className="text-sm text-gray-600">
+                Selected: <span className="font-semibold">{selectedActivitiesToAdd.size}</span> activities
+              </p>
+              <div className="flex space-x-3">
+                <button
+                  onClick={handleCloseActivityModal}
+                  className="btn btn-outline"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddActivities}
+                  disabled={selectedActivitiesToAdd.size === 0 || isAddingActivities}
+                  className="btn btn-primary"
+                >
+                  {isAddingActivities ? 'Adding...' : `Add ${selectedActivitiesToAdd.size > 0 ? selectedActivitiesToAdd.size : ''} Activities`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
