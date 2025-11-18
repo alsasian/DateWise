@@ -31,6 +31,9 @@ const validateCronAuth = (req: Request, res: Response, next: Function) => {
  * Usage with external cron service (cron-job.org, etc):
  * POST https://your-backend.onrender.com/api/cron/generate-matches
  * Header: X-Cron-Secret: your-secret-token
+ *
+ * Or with query param:
+ * POST https://your-backend.onrender.com/api/cron/generate-matches?secret=your-secret
  */
 router.post('/generate-matches', validateCronAuth, async (_req: Request, res: Response) => {
   try {

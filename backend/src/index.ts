@@ -9,6 +9,10 @@ import routes from './routes';
 
 const app = express();
 
+// Trust proxy - required for Render/Railway/Heroku and other platforms behind reverse proxy
+// This allows express-rate-limit to correctly identify users by IP
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 

@@ -23,7 +23,7 @@ export class DailyMatchGenerator {
 
       // Get all active users who need matches today
       const usersResult = await client.query(
-        `SELECT DISTINCT u.id, u.name
+        `SELECT u.id, u.name, u.last_active
          FROM users u
          WHERE u.profile_completed = true
            AND u.last_active > NOW() - INTERVAL '30 days'
