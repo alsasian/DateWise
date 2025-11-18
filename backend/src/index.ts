@@ -20,6 +20,9 @@ app.use(
   })
 );
 
+// Log CORS configuration on startup
+console.log('🔒 CORS enabled for origins:', config.allowedOrigins);
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
