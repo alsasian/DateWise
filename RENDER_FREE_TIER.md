@@ -58,10 +58,12 @@ When you deploy to Render with the updated configuration:
    Branch: main
    Root Directory: backend
    Runtime: Node
-   Build Command: npm install && npm run build
+   Build Command: npm install --production=false && npm run build
    Start Command: npm run start:prod
    Plan: Free
    ```
+
+   **Note:** The `--production=false` flag ensures devDependencies (like TypeScript types) are installed for the build.
 
 4. **Environment Variables** - Click "Advanced" and add:
    ```bash
@@ -106,7 +108,7 @@ When you deploy to Render with the updated configuration:
    Region: Singapore
    Branch: main
    Root Directory: frontend
-   Build Command: npm install && npm run build
+   Build Command: npm install --production=false && npm run build
    Publish Directory: dist
    ```
 
